@@ -1,5 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
+apply plugin: "com.google.firebase.crashlytics"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -68,6 +70,10 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+// custom properties
+def applicationIdArgument = project.findProperty('applicationId')
+def applicationVersionCodeArgument = project.findProperty('versionCode')?.toInteger()
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -75,10 +81,10 @@ android {
 
     namespace "com.initproject"
     defaultConfig {
-        applicationId "com.initproject"
+        applicationId applicationIdArgument ?: "com.initproject.prod"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode applicationVersionCodeArgument ?: 1
         versionName "1.0"
     }
     signingConfigs {
@@ -88,6 +94,12 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            storeFile file(System.getenv("CI_EVALUATION_KEYSTORE_FILE") ?: 'debug.keystore')
+            keyAlias System.getenv("CI_EVALUATION_KEY_ALIAS") ?: ''
+            keyPassword System.getenv("CI_EVALUATION_KEY_PASSWORD") ?: ''
+            storePassword System.getenv("CI_EVALUATION_STORE_PASSWORD") ?: ''
+        }
     }
     buildTypes {
         debug {
@@ -96,7 +108,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
@@ -118,6 +130,11 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // custom dependencies
+    implementation platform('com.google.firebase:firebase-bom:32.2.3')
+    implementation("com.google.firebase:firebase-crashlytics")
+
 }
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
