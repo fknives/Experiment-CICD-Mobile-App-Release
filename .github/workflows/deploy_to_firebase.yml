@@ -16,10 +16,12 @@ jobs:
         with:
           distribution: 'adopt'
           java-version: '11'
+          cache: gradle
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 16
+          cache: 'npm'
       - name: Set up Ruby
         uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
         with:
@@ -27,8 +29,15 @@ jobs:
       - name: Setup Fastlane
         working-directory: ./android
         run: bundle install
+      - name: node_modules cache
+        uses: actions/cache@v2
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
       - name: Restore Release Keystore
         env:
           keystore_base64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
