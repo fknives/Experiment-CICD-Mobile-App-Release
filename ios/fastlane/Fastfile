@@ -16,8 +16,87 @@
 default_platform(:ios)
 
 platform :ios do
+
+  before_all do
+    FIREBASE_APP_DISTRIBUTION_APP_STAGING = "1:64659984801:ios:a9c4640d2a1960a5f43be0"
+    FIREBASE_APP_DISTRIBUTION_GROUPS_QA = "ios-qa"
+    FIREBASE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_FIREBASE_SERVICE_ACCOUNT_FILE']
+    KEYCHAIN_NAME = "temp_keychain"
+    PROVISIONING_PROFILE_FILE = ENV['CI_EVALUATION_PROVISIONING_PROFILE_FILE']
+    CERTIFICATE_PASSWORD = ENV['CI_EVALUATION_CERTIFICATE_PASSWORD'].strip
+    PROVISIONING_PROFILE_FILE = "#{ENV['HOME']}/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+    IOS_CERT_FILE = ENV['CI_EVALUATION_IOS_CERT_FILE']
+    APP_IDENTIFIER = ENV['CI_EVALUATION_APP_IDENTIFIER']
+  end
+
+  lane :setupCodeSigning do
+    password = (0...50).map { ('a'..'z').to_a[rand(26)] }.join
+    cleanupKeyChain()
+    create_keychain(
+      name: KEYCHAIN_NAME,
+      default_keychain: false,
+      unlock: true,
+      timeout: 360000,
+      lock_when_sleeps: false,
+      add_to_search_list: true,
+      password: password
+    )
+    import_certificate(
+       certificate_path: IOS_CERT_FILE,
+       keychain_name: KEYCHAIN_NAME,
+       keychain_password: password,
+       certificate_password: CERTIFICATE_PASSWORD,
+       log_output: true
+    )
+    update_app_identifier(
+      plist_path: "InitProject/Info.plist",
+      app_identifier: APP_IDENTIFIER
+    )
+    update_project_provisioning(
+        xcodeproj: "InitProject.xcodeproj",
+        target_filter: "InitProject",
+        profile: PROVISIONING_PROFILE_FILE,
+        build_configuration: "Release"
+    )
+    update_project_team( # Set the right team on your project
+        teamid: CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+    )
+    unlock_keychain(
+        path: KEYCHAIN_NAME,
+        password: password
+    )
+    end
+
   desc "Description of what the lane does"
-  lane :custom_lane do
-    # add actions here: https://docs.fastlane.tools/actions
+  lane :deployInternalFirebase do
+    setupCodeSigning()
+    ipa_name = "Internal.ipa"
+
+    build_app(
+        scheme: "InitProject",
+        export_method: "ad-hoc",
+        output_directory: "./builds",
+        output_name: ipa_name
+    )
+
+    firebase_app_distribution(
+        service_credentials_file: FIREBASE_SERVICE_ACCOUNT_FILE,
+        app: FIREBASE_APP_DISTRIBUTION_APP_STAGING,
+        groups: FIREBASE_APP_DISTRIBUTION_GROUPS_QA,
+        ipa_path: "builds/#{ipa_name}",
+    )
+    cleanupKeyChain()
+  end
+
+  lane :cleanupKeyChain do
+    begin
+      delete_keychain(name: KEYCHAIN_NAME) if File.exist? File.expand_path("/Users/runner/Library/Keychains/#{KEYCHAIN_NAME}-db")
+    rescue => ex
+      UI.important('Could not delete keychain!')
+    end
+  end
+
+  after_all do
+    cleanupKeyChain()
   end
 end
