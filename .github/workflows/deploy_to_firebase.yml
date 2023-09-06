@@ -70,20 +70,19 @@ jobs:
         with:
           node-version: 16
           cache: 'npm'
-      - name: Set up Ruby
+      - name: Set up Ruby & Fastlane
         uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
         with:
           ruby-version: '3.2.1'
-      - name: Setup Fastlane
-        working-directory: ./ios
-        run: bundle install
+          bundler-cache: true
+          working-directory: ./ios
       - name: node_modules cache
         uses: actions/cache@v3
         id: npm-cache
         with:
           path: node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
       - name: Install Dependencies
         run: npm ci
       - name: pod install cache
@@ -92,7 +91,7 @@ jobs:
         with:
           path: ios/Pods
           key: ${{ runner.os }}-pod-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: ${{ runner.os }}-pod-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pod-
       - name: Install iOS Dependencies
         working-directory: ./ios
         run: pod install
