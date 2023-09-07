@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Description of what the lane does
 
+### ios deployToTestFlight
+
+```sh
+[bundle exec] fastlane ios deployToTestFlight
+```
+
+Description of what the lane does
+
 ### ios buildReleaseIPA
 
 ```sh

@@ -1,0 +1,125 @@
+name: Deploy to Play Store Internal Track
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-publish-to-play-store:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+          cache: gradle
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
+        with:
+          ruby-version: '3.2.1'
+      - name: Setup Fastlane
+        working-directory: ./android
+        run: bundle install
+      - name: node_modules cache
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+      - name: Install Dependencies
+        run: npm ci
+      - name: Restore Release Keystore
+        env:
+          keystore_base64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          echo "$keystore_base64" | base64 --decode > release.keystore
+          echo "CI_EVALUATION_KEYSTORE_FILE=`pwd`/release.keystore" >> $GITHUB_ENV
+      - name: Restore PlayStore Service Account
+        env:
+          play_store_service_account_base64: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_BASE64 }}
+        run: |
+          echo "$play_store_service_account_base64" | base64 --decode > play-store-distribution-service-account.json
+          echo "CI_EVALUATION_PLAYSTORE_SERVICE_ACCOUNT_FILE=`pwd`/play-store-distribution-service-account.json" >> $GITHUB_ENV
+      - name: Deploy to Play Store Internal Track
+        env:
+          CI_EVALUATION_KEY_ALIAS: ${{ secrets.CI_EVALUATION_KEY_ALIAS }}
+          CI_EVALUATION_KEY_PASSWORD: ${{ secrets.CI_EVALUATION_KEY_PASSWORD }}
+          CI_EVALUATION_STORE_PASSWORD: ${{ secrets.CI_EVALUATION_STORE_PASSWORD }}
+        working-directory: ./android
+        run: bundle exec fastlane deployProdPlayStore
+
+  ios-publish-to-testflight:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - name: Set up Ruby & Fastlane
+        uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
+        with:
+          ruby-version: '3.2.1'
+          bundler-cache: true
+          working-directory: ./ios
+      - name: node_modules cache
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+      - name: Install Dependencies
+        run: npm ci
+      - name: pod install cache
+        uses: actions/cache@v3
+        id: pod-cache
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pod-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pod-
+      - name: Install iOS Dependencies
+        working-directory: ./ios
+        run: pod install
+      - name: Restore Provisioning Profile
+        env:
+          ci_evaluation_provision_profile_base64: ${{ secrets.CI_EVALUATION_APPSTORE_PROVISION_PROFILE_BASE64 }}
+        run: |
+          echo "$ci_evaluation_provision_profile_base64" | base64 --decode > profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          echo "CI_EVALUATION_PROVISIONING_PROFILE_FILE=\"~/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision\"" >> $GITHUB_ENV
+      - name: Restore iOS Cert
+        env:
+          ci_evaluation_cert_base64: ${{ secrets.CI_EVALUATION_CERT_BASE64 }}
+        run: |
+          echo "$ci_evaluation_cert_base64" | base64 --decode > ios_distribution.p12
+          echo "CI_EVALUATION_IOS_CERT_FILE=`pwd`/ios_distribution.p12" >> $GITHUB_ENV
+      - name: Restore App Store API Key
+        env:
+          app_store_api_key_base64: ${{ secrets.APP_STORE_API_KEY_BASE64 }}
+        run: |
+          echo "$app_store_api_key_base64" | base64 --decode > api_key.p8
+          echo "CI_EVALUATION_APP_STORE_API_KEY_FILE=`pwd`/api_key.p8" >> $GITHUB_ENV
+      - name: Deploy to TestFlight
+        env:
+          CI_EVALUATION_APP_STORE_API_KEY_ID: ${{ secrets.CI_EVALUATION_APP_STORE_API_KEY_ID }}
+          CI_EVALUATION_APP_STORE_API_KEY_ISSUER_ID: ${{ secrets.CI_EVALUATION_APP_STORE_API_KEY_ISSUER_ID }}
+          CI_EVALUATION_CERTIFICATE_PASSWORD: ${{ secrets.CI_EVALUATION_CERTIFICATE_PASSWORD }}
+          CI_EVALUATION_APP_IDENTIFIER: ${{ secrets.CI_EVALUATION_APP_IDENTIFIER }}
+        working-directory: ./ios
+        run: bundle exec fastlane deployToTestFlight

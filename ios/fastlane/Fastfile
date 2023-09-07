@@ -27,12 +27,15 @@ platform :ios do
     PROVISIONING_PROFILE_FILE = "#{ENV['HOME']}/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
     IOS_CERT_FILE = ENV['CI_EVALUATION_IOS_CERT_FILE']
     APP_IDENTIFIER = ENV['CI_EVALUATION_APP_IDENTIFIER']
+    APP_STORE_API_KEY_FILE = ENV['CI_EVALUATION_APP_STORE_API_KEY_FILE']
+    APP_STORE_API_KEY_ID = ENV['CI_EVALUATION_APP_STORE_API_KEY_ID']
+    APP_STORE_API_KEY_ISSUER_ID = ENV['CI_EVALUATION_APP_STORE_API_KEY_ISSUER_ID']
   end
 
   desc "Description of what the lane does"
   lane :deployInternalFirebase do
     ipa_name = "Internal.ipa"
-    buildReleaseIPA(ipa_name: ipa_name)
+    buildReleaseIPA(ipa_name: ipa_name, method: "ad-hoc")
 
     firebase_app_distribution(
         service_credentials_file: FIREBASE_SERVICE_ACCOUNT_FILE,
@@ -43,16 +46,42 @@ platform :ios do
     cleanupKeyChain()
   end
 
+  desc "Description of what the lane does"
+    lane :deployToTestFlight do
+      setupCodeSigning()
+      ipa_name = "Release.ipa"
+      buildReleaseIPA(ipa_name: ipa_name, method: "app-store")
+
+      app_store_connect_api_key(
+         key_id: APP_STORE_API_KEY_ID,
+         issuer_id: APP_STORE_API_KEY_ISSUER_ID,
+         key_filepath: APP_STORE_API_KEY_FILE,
+         is_key_content_base64: false,
+       	 in_house: false  # optional but may be required if using match/sigh
+      )
+
+      upload_to_testflight(
+          skip_submission: true,
+          ipa: "./builds/#{ipa_name}",
+          skip_waiting_for_build_processing: true,
+      )
+      cleanupKeyChain()
+    end
+
   lane :buildReleaseIPA do |options|
     ipa_name = options[:ipa_name]
+    method = options[:method]
     if ipa_name.nil?
       ipa_name = "InternalBuild.ipa"
     end
+    if method.nil?
+      method = "ad-hoc"
+     end
     setupCodeSigning()
 
     build_app(
         scheme: "InitProject",
-        export_method: "ad-hoc",
+        export_method: method,
         output_directory: "./builds",
         output_name: ipa_name
     )

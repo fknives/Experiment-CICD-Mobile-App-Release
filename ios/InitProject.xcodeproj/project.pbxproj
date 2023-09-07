@@ -477,8 +477,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "6f52a894-60c1-4aff-9863-e6f5c719c29e";
-				PROVISIONING_PROFILE_SPECIFIER = "CI Test Draft App Profile";
+				PROVISIONING_PROFILE = "71003876-1981-4670-a50e-64faa92d981c";
+				PROVISIONING_PROFILE_SPECIFIER = "CI Test Draft App Profile (appstore)";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/InitProject.app/InitProject";
 			};
 			name = Release;
@@ -505,7 +505,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = test;
+				PRODUCT_BUNDLE_IDENTIFIER = com.halcyonmobile.internal.citest;
 				PRODUCT_NAME = InitProject;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Gergely Hegedus Development Profile";
@@ -538,11 +538,10 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = test;
+				PRODUCT_BUNDLE_IDENTIFIER = com.halcyonmobile.internal.citest;
 				PRODUCT_NAME = InitProject;
-				PROVISIONING_PROFILE = "6f52a894-60c1-4aff-9863-e6f5c719c29e";
-				PROVISIONING_PROFILE_SPECIFIER = "CI Test Draft App Profile";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "CI Test Draft App Profile";
+				PROVISIONING_PROFILE = "71003876-1981-4670-a50e-64faa92d981c";
+				PROVISIONING_PROFILE_SPECIFIER = "CI Test Draft App Profile (appstore)";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
