@@ -15,14 +15,6 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## iOS
 
-### ios setupCodeSigning
-
-```sh
-[bundle exec] fastlane ios setupCodeSigning
-```
-
-
-
 ### ios deployInternalFirebase
 
 ```sh
@@ -30,6 +22,22 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 ```
 
 Description of what the lane does
+
+### ios buildReleaseIPA
+
+```sh
+[bundle exec] fastlane ios buildReleaseIPA
+```
+
+
+
+### ios setupCodeSigning
+
+```sh
+[bundle exec] fastlane ios setupCodeSigning
+```
+
+
 
 ### ios cleanupKeyChain
 

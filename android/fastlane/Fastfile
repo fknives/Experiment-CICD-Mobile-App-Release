@@ -32,15 +32,7 @@ platform :android do
   lane :deployInternalFirebase do |options|
     release_notes = options[:release_notes]
 
-    gradle(task: 'clean', flags: "--no-daemon")
-    gradle(
-        task: 'assemble',
-        build_type: 'release',
-        flags: "--no-daemon",
-        properties: {
-            "applicationId" => "com.initproject.staging"
-        }
-    )
+    buildReleaseApk()
     internal_apk = lane_context[SharedValues::GRADLE_ALL_APK_OUTPUT_PATHS].find{ |i| i[/app-*release*.apk/] }
 
     firebase_app_distribution(
@@ -50,6 +42,18 @@ platform :android do
         android_artifact_type: 'APK',
         android_artifact_path: internal_apk,
         release_notes: "#{release_notes}",
+    )
+  end
+
+  lane :buildReleaseApk do
+    gradle(task: 'clean', flags: "--no-daemon")
+    gradle(
+        task: 'assemble',
+        build_type: 'release',
+        flags: "--no-daemon",
+        properties: {
+            "applicationId" => "com.initproject.staging"
+        }
     )
   end
 

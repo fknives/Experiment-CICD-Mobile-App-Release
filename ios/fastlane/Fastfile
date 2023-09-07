@@ -29,6 +29,35 @@ platform :ios do
     APP_IDENTIFIER = ENV['CI_EVALUATION_APP_IDENTIFIER']
   end
 
+  desc "Description of what the lane does"
+  lane :deployInternalFirebase do
+    ipa_name = "Internal.ipa"
+    buildReleaseIPA(ipa_name: ipa_name)
+
+    firebase_app_distribution(
+        service_credentials_file: FIREBASE_SERVICE_ACCOUNT_FILE,
+        app: FIREBASE_APP_DISTRIBUTION_APP_STAGING,
+        groups: FIREBASE_APP_DISTRIBUTION_GROUPS_QA,
+        ipa_path: "builds/#{ipa_name}",
+    )
+    cleanupKeyChain()
+  end
+
+  lane :buildReleaseIPA do |options|
+    ipa_name = options[:ipa_name]
+    if ipa_name.nil?
+      ipa_name = "InternalBuild.ipa"
+    end
+    setupCodeSigning()
+
+    build_app(
+        scheme: "InitProject",
+        export_method: "ad-hoc",
+        output_directory: "./builds",
+        output_name: ipa_name
+    )
+  end
+
   lane :setupCodeSigning do
     password = (0...50).map { ('a'..'z').to_a[rand(26)] }.join
     cleanupKeyChain()
@@ -65,27 +94,6 @@ platform :ios do
         path: KEYCHAIN_NAME,
         password: password
     )
-    end
-
-  desc "Description of what the lane does"
-  lane :deployInternalFirebase do
-    setupCodeSigning()
-    ipa_name = "Internal.ipa"
-
-    build_app(
-        scheme: "InitProject",
-        export_method: "ad-hoc",
-        output_directory: "./builds",
-        output_name: ipa_name
-    )
-
-    firebase_app_distribution(
-        service_credentials_file: FIREBASE_SERVICE_ACCOUNT_FILE,
-        app: FIREBASE_APP_DISTRIBUTION_APP_STAGING,
-        groups: FIREBASE_APP_DISTRIBUTION_GROUPS_QA,
-        ipa_path: "builds/#{ipa_name}",
-    )
-    cleanupKeyChain()
   end
 
   lane :cleanupKeyChain do

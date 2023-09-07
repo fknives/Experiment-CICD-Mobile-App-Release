@@ -31,6 +31,14 @@ Submit a new Internal Build to Firebase
 
 ```
 
+### android buildReleaseApk
+
+```sh
+[bundle exec] fastlane android buildReleaseApk
+```
+
+
+
 ### android deployProdPlayStore
 
 ```sh
