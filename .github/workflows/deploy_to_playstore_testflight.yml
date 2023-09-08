@@ -22,13 +22,12 @@ jobs:
         with:
           node-version: 16
           cache: 'npm'
-      - name: Set up Ruby
+      - name: Set up Ruby & Fastlane
         uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
         with:
           ruby-version: '3.2.1'
-      - name: Setup Fastlane
-        working-directory: ./android
-        run: bundle install
+          bundler-cache: true
+          working-directory: ./android
       - name: node_modules cache
         uses: actions/cache@v3
         id: npm-cache
