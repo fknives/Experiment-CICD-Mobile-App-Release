@@ -1,4 +1,4 @@
-name: Deploy to Play Store Internal Track
+name: Deploy to Play Store Internal & TestFlight
 
 on:
   workflow_dispatch:
