@@ -31,6 +31,10 @@ platform :android do
   desc "```"
   lane :deployInternalFirebase do |options|
     release_notes = options[:release_notes]
+    if release_notes.nil?
+      commit = last_git_commit
+      release_notes = "Last commit with hash: #{commit[:commit_hash]} and message: #{commit[:message]}"
+    end
 
     buildReleaseApk()
     internal_apk = lane_context[SharedValues::GRADLE_ALL_APK_OUTPUT_PATHS].find{ |i| i[/app-*release*.apk/] }

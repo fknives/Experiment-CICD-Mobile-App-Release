@@ -33,7 +33,13 @@ platform :ios do
   end
 
   desc "Description of what the lane does"
-  lane :deployInternalFirebase do
+  lane :deployInternalFirebase do |options|
+    release_notes = options[:release_notes]
+    if release_notes.nil?
+      commit = last_git_commit
+      release_notes = "Last commit with hash: #{commit[:commit_hash]} and message: #{commit[:message]}"
+    end
+
     ipa_name = "Internal.ipa"
     buildReleaseIPA(ipa_name: ipa_name, method: "ad-hoc")
 
@@ -42,6 +48,7 @@ platform :ios do
         app: FIREBASE_APP_DISTRIBUTION_APP_STAGING,
         groups: FIREBASE_APP_DISTRIBUTION_GROUPS_QA,
         ipa_path: "builds/#{ipa_name}",
+        release_notes: "#{release_notes}",
     )
     cleanupKeyChain()
   end
