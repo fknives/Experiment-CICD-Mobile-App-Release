@@ -12,7 +12,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
@@ -27,6 +27,7 @@ jobs:
           restore-keys: ${{ runner.os }}-npm-
       - name: Install Dependencies
         run: npm ci
+
       - name: Run Tests
         run: npm run test
 
@@ -37,7 +38,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
@@ -54,24 +55,20 @@ jobs:
         run: npm ci
 
       - name: Set up Ruby & Fastlane
-        uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.1'
           bundler-cache: true
           working-directory: ./android
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+          # caching currently disabled, because the files are large, but don't decrease built time too much
+          #cache: gradle
 
-      - name: Restore Release Keystore
-        env:
-          keystore_base64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-        run: |
-          echo "$keystore_base64" | base64 --decode > release.keystore
-          echo "CI_EVALUATION_KEYSTORE_FILE=`pwd`/release.keystore" >> $GITHUB_ENV
-
-      - name: Build Release APK
-        env:
-          CI_EVALUATION_KEY_ALIAS: ${{ secrets.CI_EVALUATION_KEY_ALIAS }}
-          CI_EVALUATION_KEY_PASSWORD: ${{ secrets.CI_EVALUATION_KEY_PASSWORD }}
-          CI_EVALUATION_STORE_PASSWORD: ${{ secrets.CI_EVALUATION_STORE_PASSWORD }}
+      - name: Build APK
         working-directory: ./android
         run: bundle exec fastlane buildReleaseApk
 
@@ -82,7 +79,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
@@ -99,12 +96,11 @@ jobs:
         run: npm ci
 
       - name: Set up Ruby & Fastlane
-        uses: ruby/setup-ruby@ec02537da5712d66d4d50a0f33b7eb52773b5ed1
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.1'
           bundler-cache: true
           working-directory: ./ios
-
       - name: pod install cache
         uses: actions/cache@v3
         id: pod-cache
@@ -116,24 +112,23 @@ jobs:
         working-directory: ./ios
         run: pod install
 
-      - name: Restore Provisioning Profile
+      - name: Restore Internal Provisioning Profile
         env:
-          ci_evaluation_provision_profile_base64: ${{ secrets.CI_EVALUATION_PROVISION_PROFILE_BASE64 }}
+          provision_profile_base64: ${{ secrets.CI_EVAL_IOS_PROVISIONING_PROFILE_INTERNAL_BASE64 }}
         run: |
-          echo "$ci_evaluation_provision_profile_base64" | base64 --decode > profile.mobileprovision
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-          echo "CI_EVALUATION_PROVISIONING_PROFILE_FILE=\"~/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision\"" >> $GITHUB_ENV
+          echo "$provision_profile_base64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/internal_profile.mobileprovision
+          echo "CI_EVAL_IOS_PROVISIONING_PROFILE_INTERNAL_FILENAME=internal_profile.mobileprovision" >> $GITHUB_ENV
       - name: Restore iOS Cert
         env:
-          ci_evaluation_cert_base64: ${{ secrets.CI_EVALUATION_CERT_BASE64 }}
+          ios_cert_base64: ${{ secrets.CI_EVAL_IOS_CERT_BASE64 }}
         run: |
-          echo "$ci_evaluation_cert_base64" | base64 --decode > ios_distribution.p12
-          echo "CI_EVALUATION_IOS_CERT_FILE=`pwd`/ios_distribution.p12" >> $GITHUB_ENV
+          echo "$ios_cert_base64" | base64 --decode > ios_distribution.p12
+          echo "CI_EVAL_IOS_CERT_FILE=`pwd`/ios_distribution.p12" >> $GITHUB_ENV
 
       - name: Build Release IPA
         env:
-          CI_EVALUATION_CERTIFICATE_PASSWORD: ${{ secrets.CI_EVALUATION_CERTIFICATE_PASSWORD }}
-          CI_EVALUATION_APP_IDENTIFIER: ${{ secrets.CI_EVALUATION_APP_IDENTIFIER }}
+          CI_EVAL_IOS_CERT_PASSWORD: ${{ secrets.CI_EVAL_IOS_CERT_PASSWORD }}
+          CI_EVAL_INTERNAL_APP_IDENTIFIER: ${{ secrets.CI_EVAL_INTERNAL_APP_IDENTIFIER }}
         working-directory: ./ios
         run: bundle exec fastlane buildReleaseIPA

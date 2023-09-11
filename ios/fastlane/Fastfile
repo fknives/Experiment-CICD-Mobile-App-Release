@@ -18,38 +18,41 @@ default_platform(:ios)
 platform :ios do
 
   before_all do
-    # Firebase's internal app id, find it on the Firebase website
-    FIREBASE_APP_DISTRIBUTION_APP_STAGING = "1:64659984801:ios:a9c4640d2a1960a5f43be0"
-    # Firebase's testing group
+    FIREBASE_DISTRIBUTION_INTERNAL_APP = "1:64659984801:ios:a9c4640d2a1960a5f43be0"
     FIREBASE_APP_DISTRIBUTION_GROUPS_QA = "ios-qa"
-    # name of the keychain created while signing
     KEYCHAIN_NAME = "temp_keychain"
+    INTERNAL_APP_IDENTIFIER = ENV['CI_EVAL_INTERNAL_APP_IDENTIFIER']
+    PROD_APP_IDENTIFIER = ENV['CI_EVAL_PROD_APP_IDENTIFIER']
+    APP_TARGET = "InitProject"
 
-    # Environment variable, service account key to authenticate with firebase
-    FIREBASE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_FIREBASE_SERVICE_ACCOUNT_FILE']
+    # Environment variable should be the full path to the firebase auth .json
+    FIREBASE_DISTRIBUTION_AUTH_FILE = ENV['CI_EVAL_FIREBASE_DISTRIBUTION_AUTH_FILE']
+
+    # provisioning profiles, they are under a specific folder
+    # filename come from environment variable
+    provisioning_profile_folder = "#{ENV['HOME']}/Library/MobileDevice/Provisioning Profiles"
+    internal_provisioning_profile_name = ENV['CI_EVAL_IOS_PROVISIONING_PROFILE_INTERNAL_FILENAME']
+    INTERNAL_PROVISIONING_PROFILE_FILE = "#{provisioning_profile_folder}/#{internal_provisioning_profile_name}"
+    prod_provisioning_profile_name = ENV['CI_EVAL_IOS_PROVISIONING_PROFILE_PROD_FILENAME']
+    PROD_PROVISIONING_PROFILE_FILE = "#{provisioning_profile_folder}/#{prod_provisioning_profile_name}"
+
     # full path to the signing certificate. Created on the Apple Developer portal, then exported from keychain, usually as p12.
-    IOS_CERT_FILE = ENV['CI_EVALUATION_IOS_CERT_FILE']
+    IOS_CERT_FILE = ENV['CI_EVAL_IOS_CERT_FILE']
     # password to the certificate
-    CERTIFICATE_PASSWORD = ENV['CI_EVALUATION_CERTIFICATE_PASSWORD'].strip
-    # full path to the provisioning profile, the file name comes from Environment variable
-    # created on the Apple Developer portal
-    PROVISIONING_PROFILE_FILE = "#{ENV['HOME']}/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-    # App identifier Environment variable, copied from the Apple Developer portal
-    APP_IDENTIFIER = ENV['CI_EVALUATION_APP_IDENTIFIER']
-    # App Api Key File, created on the Apple Developer portal
-    APP_STORE_API_KEY_FILE = ENV['CI_EVALUATION_APP_STORE_API_KEY_FILE']
-    # App KeyId Environment variable, copied from the Apple Developer portal
-    APP_STORE_API_KEY_ID = ENV['CI_EVALUATION_APP_STORE_API_KEY_ID']
-    # App Key Issuer Environment variable, copied from the Apple Developer portal
-    APP_STORE_API_KEY_ISSUER_ID = ENV['CI_EVALUATION_APP_STORE_API_KEY_ISSUER_ID']
+    CERTIFICATE_PASSWORD = ENV['CI_EVAL_IOS_CERT_PASSWORD'].strip
+
+    # App Api Key File Path, created on https://appstoreconnect.apple.com/access/api
+    APP_STORE_API_KEY_FILE = ENV['CI_EVAL_IOS_APP_STORE_KEY_FILE']
+    APP_STORE_API_KEY_ID = ENV['CI_EVAL_IOS_APP_STORE_KEY_ID']
+    APP_STORE_API_KEY_ISSUER_ID = ENV['CI_EVAL_IOS_APP_STORE_KEY_ISSUER_ID']
   end
 
   desc "Creates Release Signed build and publishes it to firebase"
   desc ">Optionally release notes can be added like so:"
   desc "```sh"
-  desc "[bundle exec] fastlane deployInternalFirebase release_notes:\"testing notes\""
+  desc "[bundle exec] fastlane deployInternalToFirebase release_notes:\"testing notes\""
   desc "```"
-  lane :deployInternalFirebase do |options|
+  lane :deployInternalToFirebase do |options|
     release_notes = options[:release_notes]
     if release_notes.nil?
       commit = last_git_commit
@@ -57,16 +60,20 @@ platform :ios do
     end
 
     ipa_name = "Internal.ipa"
-    buildReleaseIPA(ipa_name: ipa_name, method: "ad-hoc")
+    buildReleaseIPA(
+        ipa_name: ipa_name,
+        method: "ad-hoc",
+        profile: INTERNAL_PROVISIONING_PROFILE_FILE,
+        app_identifier: INTERNAL_APP_IDENTIFIER,
+    )
 
     firebase_app_distribution(
-        service_credentials_file: FIREBASE_SERVICE_ACCOUNT_FILE,
-        app: FIREBASE_APP_DISTRIBUTION_APP_STAGING,
+        service_credentials_file: FIREBASE_DISTRIBUTION_AUTH_FILE,
+        app: FIREBASE_DISTRIBUTION_INTERNAL_APP,
         groups: FIREBASE_APP_DISTRIBUTION_GROUPS_QA,
         ipa_path: "builds/#{ipa_name}",
         release_notes: "#{release_notes}",
     )
-    cleanupKeyChain()
   end
 
   desc "Submit a new Production Build to TestFlight"
@@ -87,37 +94,39 @@ platform :ios do
 
     if skip_build_number_increase.nil?
       increment_build_number({
-          build_number: latest_testflight_build_number(app_identifier: APP_IDENTIFIER) + 1
+          build_number: latest_testflight_build_number(app_identifier: PROD_APP_IDENTIFIER) + 1
       })
     end
 
-    setupCodeSigning()
     ipa_name = "Release.ipa"
-    buildReleaseIPA(ipa_name: ipa_name, method: "app-store")
+    buildReleaseIPA(
+        ipa_name: ipa_name,
+        method: "app-store",
+        profile: PROD_PROVISIONING_PROFILE_FILE,
+        app_identifier: PROD_APP_IDENTIFIER,
+    )
 
     upload_to_testflight(
         skip_submission: true,
         ipa: "./builds/#{ipa_name}",
         skip_waiting_for_build_processing: true,
     )
-    cleanupKeyChain()
   end
 
   desc "Create new Release IPA"
   desc "Find it under ios/builds"
   lane :buildReleaseIPA do |options|
-    ipa_name = options[:ipa_name]
-    method = options[:method]
-    if ipa_name.nil?
-      ipa_name = "InternalBuild.ipa"
-    end
-    if method.nil?
-      method = "ad-hoc"
-     end
-    setupCodeSigning()
+    ipa_name = options[:ipa_name] || "InternalBuild.ipa"
+    method = options[:method] || "ad-hoc"
+    profile = options[:profile] || INTERNAL_PROVISIONING_PROFILE_FILE
+    app_identifier = options[:app_identifier] || INTERNAL_APP_IDENTIFIER
 
+    setupCodeSigning(
+        profile: profile,
+        app_identifier: app_identifier,
+    )
     build_app(
-        scheme: "InitProject",
+        scheme: APP_TARGET,
         export_method: method,
         output_directory: "./builds",
         output_name: ipa_name
@@ -126,7 +135,9 @@ platform :ios do
 
   desc "Sets up the and initialises the required authentications and project configurations to sign a build"
   desc "Creates a temporary keychain which should be deleted at the end, see :cleanupKeyChain"
-  lane :setupCodeSigning do
+  lane :setupCodeSigning do |options|
+    profile = options[:profile]
+    app_identifier = options[:app_identifier]
     password = (0...50).map { ('a'..'z').to_a[rand(26)] }.join
     cleanupKeyChain()
     create_keychain(
@@ -138,6 +149,7 @@ platform :ios do
       add_to_search_list: true,
       password: password
     )
+
     import_certificate(
        certificate_path: IOS_CERT_FILE,
        keychain_name: KEYCHAIN_NAME,
@@ -146,18 +158,25 @@ platform :ios do
        log_output: true
     )
     update_app_identifier(
-      plist_path: "InitProject/Info.plist",
-      app_identifier: APP_IDENTIFIER
+      plist_path: "#{APP_TARGET}/Info.plist",
+      app_identifier: app_identifier
     )
     update_project_provisioning(
-        xcodeproj: "InitProject.xcodeproj",
-        target_filter: "InitProject",
-        profile: PROVISIONING_PROFILE_FILE,
+        xcodeproj: "#{APP_TARGET}.xcodeproj",
+        target_filter: "#{APP_TARGET}",
+        profile: profile,
         build_configuration: "Release"
     )
     update_project_team( # Set the right team on your project
         teamid: CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
     )
+    update_code_signing_settings(
+        use_automatic_signing: false,
+        code_sign_identity: "iPhone Distribution",
+        path: "#{APP_TARGET}.xcodeproj",
+        sdk: "iphoneos*"
+    )
+
     unlock_keychain(
         path: KEYCHAIN_NAME,
         password: password

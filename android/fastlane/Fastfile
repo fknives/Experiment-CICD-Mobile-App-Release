@@ -18,22 +18,24 @@ default_platform(:android)
 platform :android do
 
   before_all do
-    # Firebase's internal app id, find it on the Firebase website
-    FIREBASE_APP_DISTRIBUTION_APP_STAGING = "1:64659984801:android:7a0514333a32b8c5f43be0"
-    # Firebase's testing group
+    FIREBASE_DISTRIBUTION_INTERNAL_APP = "1:64659984801:android:7a0514333a32b8c5f43be0"
     FIREBASE_APP_DISTRIBUTION_GROUPS_QA = "android-qa"
-    # Environment variable, service account key to authenticate with firebase
-    FIREBASE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_FIREBASE_SERVICE_ACCOUNT_FILE']
-    # Environment variable, service account key to authenticate with PlayStore
-    PLAYSTORE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_PLAYSTORE_SERVICE_ACCOUNT_FILE']
+    INTERNAL_APP_IDENTIFIER = "com.initproject.staging"
+    PROD_APP_IDENTIFIER = "com.initproject.prod"
+
+    # Environment variable should be the full path to the firebase auth .json
+    FIREBASE_DISTRIBUTION_AUTH_FILE = ENV['CI_EVAL_FIREBASE_DISTRIBUTION_AUTH_FILE']
+
+    # Environment variable should be the full path to the PlayStore auth .json
+    PLAY_STORE_AUTH_FILE = ENV['CI_EVAL_ANDROID_PLAY_STORE_AUTH_FILE']
   end
 
   desc "Submit a new Internal Build to Firebase"
   desc ">Optionally release notes can be added like so:"
   desc "```sh"
-  desc "[bundle exec] fastlane deployInternalFirebase release_notes:\"testing notes\""
+  desc "[bundle exec] fastlane deployInternalToFirebase release_notes:\"testing notes\""
   desc "```"
-  lane :deployInternalFirebase do |options|
+  lane :deployInternalToFirebase do |options|
     release_notes = options[:release_notes]
     if release_notes.nil?
       commit = last_git_commit
@@ -44,8 +46,8 @@ platform :android do
     internal_apk = lane_context[SharedValues::GRADLE_ALL_APK_OUTPUT_PATHS].find{ |i| i[/app-*release*.apk/] }
 
     firebase_app_distribution(
-        service_credentials_file: FIREBASE_SERVICE_ACCOUNT_FILE,
-        app: FIREBASE_APP_DISTRIBUTION_APP_STAGING,
+        service_credentials_file: FIREBASE_DISTRIBUTION_AUTH_FILE,
+        app: FIREBASE_DISTRIBUTION_INTERNAL_APP,
         groups: FIREBASE_APP_DISTRIBUTION_GROUPS_QA,
         android_artifact_type: 'APK',
         android_artifact_path: internal_apk,
@@ -62,7 +64,8 @@ platform :android do
         build_type: 'release',
         flags: "--no-daemon",
         properties: {
-            "applicationId" => "com.initproject.staging"
+            "applicationId" => INTERNAL_APP_IDENTIFIER,
+            "useDebugSigningForReleaseBuild" => "true"
         }
     )
   end
@@ -71,16 +74,16 @@ platform :android do
   desc "By Default it sets the version_code to last from PlayStore + 1."
   desc ">Optionally version code increase can be skipped via:"
   desc "```sh"
-  desc "[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1"
+  desc "[bundle exec] fastlane deployProdToPlayStore skip_build_number_increase:1"
   desc "```"
-  lane :deployProdPlayStore do |options|
-    skip_build_number_increase = options[:skip_build_number_increase] # optional, if not set, it gets the last from TestFlight then adds + 1
-    package_name = "com.initproject.prod"
+  lane :deployProdToPlayStore do |options|
+    skip_build_number_increase = options[:skip_build_number_increase] # optional, if not set, it gets the last from PlayStore then adds + 1
+    package_name = PROD_APP_IDENTIFIER
 
     if skip_build_number_increase.nil?
         last_version_codes = google_play_track_version_codes(
             track: 'internal',
-            json_key: PLAYSTORE_SERVICE_ACCOUNT_FILE,
+            json_key: PLAY_STORE_AUTH_FILE,
             package_name: package_name
         )
         last_version_code = last_version_codes[0]
@@ -93,6 +96,7 @@ platform :android do
         build_type: 'release',
         flags: "--no-daemon",
         properties: {
+            "applicationId" => PROD_APP_IDENTIFIER,
             "versionCode" => version_code
         }
     )
@@ -102,7 +106,7 @@ platform :android do
         track: 'internal',
         release_status: 'draft', # can remove once app is released to the public
         aab: production_aab,
-        json_key: PLAYSTORE_SERVICE_ACCOUNT_FILE,
+        json_key: PLAY_STORE_AUTH_FILE,
         skip_upload_apk: true,
         package_name: package_name,
     )

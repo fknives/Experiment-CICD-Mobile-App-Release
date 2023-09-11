@@ -73,6 +73,7 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 // custom properties
 def applicationIdArgument = project.findProperty('applicationId')
 def applicationVersionCodeArgument = project.findProperty('versionCode')?.toInteger()
+def useDebugSigningForReleaseBuild = project.findProperty('useDebugSigningForReleaseBuild')?.toBoolean() ?: false
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -95,10 +96,10 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file(System.getenv("CI_EVALUATION_KEYSTORE_FILE") ?: 'debug.keystore')
-            keyAlias System.getenv("CI_EVALUATION_KEY_ALIAS") ?: ''
-            keyPassword System.getenv("CI_EVALUATION_KEY_PASSWORD") ?: ''
-            storePassword System.getenv("CI_EVALUATION_STORE_PASSWORD") ?: ''
+            storeFile file(System.getenv("CI_EVAL_ANDROID_KEYSTORE_FILE") ?: 'debug.keystore')
+            keyAlias System.getenv("CI_EVAL_ANDROID_KEYSTORE_KEY_ALIAS") ?: ''
+            keyPassword System.getenv("CI_EVAL_ANDROID_KEYSTORE_KEY_PASSWORD") ?: ''
+            storePassword System.getenv("CI_EVAL_ANDROID_KEYSTORE_STORE_PASSWORD") ?: ''
         }
     }
     buildTypes {
@@ -108,7 +109,11 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.release
+            if (useDebugSigningForReleaseBuild) {
+                signingConfig signingConfigs.debug
+            } else {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
