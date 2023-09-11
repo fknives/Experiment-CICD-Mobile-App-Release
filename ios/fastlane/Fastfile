@@ -168,7 +168,7 @@ platform :ios do
   desc "The keychain is created via :setupCodeSigning"
   lane :cleanupKeyChain do
     begin
-      delete_keychain(name: KEYCHAIN_NAME) if File.exist? File.expand_path("/Users/runner/Library/Keychains/#{KEYCHAIN_NAME}-db")
+      delete_keychain(name: KEYCHAIN_NAME) if File.exist? File.expand_path("#{ENV['HOME']}/Library/Keychains/#{KEYCHAIN_NAME}-db")
     rescue => ex
       UI.important('Could not delete keychain!')
     end
