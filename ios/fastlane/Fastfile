@@ -18,21 +18,37 @@ default_platform(:ios)
 platform :ios do
 
   before_all do
+    # Firebase's internal app id, find it on the Firebase website
     FIREBASE_APP_DISTRIBUTION_APP_STAGING = "1:64659984801:ios:a9c4640d2a1960a5f43be0"
+    # Firebase's testing group
     FIREBASE_APP_DISTRIBUTION_GROUPS_QA = "ios-qa"
-    FIREBASE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_FIREBASE_SERVICE_ACCOUNT_FILE']
+    # name of the keychain created while signing
     KEYCHAIN_NAME = "temp_keychain"
-    PROVISIONING_PROFILE_FILE = ENV['CI_EVALUATION_PROVISIONING_PROFILE_FILE']
-    CERTIFICATE_PASSWORD = ENV['CI_EVALUATION_CERTIFICATE_PASSWORD'].strip
-    PROVISIONING_PROFILE_FILE = "#{ENV['HOME']}/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+
+    # Environment variable, service account key to authenticate with firebase
+    FIREBASE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_FIREBASE_SERVICE_ACCOUNT_FILE']
+    # full path to the signing certificate. Created on the Apple Developer portal, then exported from keychain, usually as p12.
     IOS_CERT_FILE = ENV['CI_EVALUATION_IOS_CERT_FILE']
+    # password to the certificate
+    CERTIFICATE_PASSWORD = ENV['CI_EVALUATION_CERTIFICATE_PASSWORD'].strip
+    # full path to the provisioning profile, the file name comes from Environment variable
+    # created on the Apple Developer portal
+    PROVISIONING_PROFILE_FILE = "#{ENV['HOME']}/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+    # App identifier Environment variable, copied from the Apple Developer portal
     APP_IDENTIFIER = ENV['CI_EVALUATION_APP_IDENTIFIER']
+    # App Api Key File, created on the Apple Developer portal
     APP_STORE_API_KEY_FILE = ENV['CI_EVALUATION_APP_STORE_API_KEY_FILE']
+    # App KeyId Environment variable, copied from the Apple Developer portal
     APP_STORE_API_KEY_ID = ENV['CI_EVALUATION_APP_STORE_API_KEY_ID']
+    # App Key Issuer Environment variable, copied from the Apple Developer portal
     APP_STORE_API_KEY_ISSUER_ID = ENV['CI_EVALUATION_APP_STORE_API_KEY_ISSUER_ID']
   end
 
-  desc "Description of what the lane does"
+  desc "Creates Release Signed build and publishes it to firebase"
+  desc ">Optionally release notes can be added like so:"
+  desc "```sh"
+  desc "[bundle exec] fastlane deployInternalFirebase release_notes:\"testing notes\""
+  desc "```"
   lane :deployInternalFirebase do |options|
     release_notes = options[:release_notes]
     if release_notes.nil?
@@ -53,35 +69,42 @@ platform :ios do
     cleanupKeyChain()
   end
 
-  desc "Description of what the lane does"
-    lane :deployToTestFlight do |options|
-      skip_build_number_increase = options[:skip_build_number_increase] # optional, if not set, it gets the last from TestFlight then adds + 1
-      app_store_connect_api_key(
-          key_id: APP_STORE_API_KEY_ID,
-          issuer_id: APP_STORE_API_KEY_ISSUER_ID,
-          key_filepath: APP_STORE_API_KEY_FILE,
-          is_key_content_base64: false,
-          in_house: false  # optional but may be required if using match/sigh
-      )
+  desc "Submit a new Production Build to TestFlight"
+  desc "By Default it sets the version_code to last from TestFlight + 1."
+  desc ">Optionally version code increase can be skipped via:"
+  desc "```sh"
+  desc "[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1"
+  desc "```"
+  lane :deployToTestFlight do |options|
+    skip_build_number_increase = options[:skip_build_number_increase] # optional, if not set, it gets the last from TestFlight then adds + 1
+    app_store_connect_api_key(
+        key_id: APP_STORE_API_KEY_ID,
+        issuer_id: APP_STORE_API_KEY_ISSUER_ID,
+        key_filepath: APP_STORE_API_KEY_FILE,
+        is_key_content_base64: false,
+        in_house: false  # optional but may be required if using match/sigh
+    )
 
-      if skip_build_number_increase.nil?
-        increment_build_number({
-            build_number: latest_testflight_build_number(app_identifier: APP_IDENTIFIER) + 1
-        })
-      end
-
-      setupCodeSigning()
-      ipa_name = "Release.ipa"
-      buildReleaseIPA(ipa_name: ipa_name, method: "app-store")
-
-      upload_to_testflight(
-          skip_submission: true,
-          ipa: "./builds/#{ipa_name}",
-          skip_waiting_for_build_processing: true,
-      )
-      cleanupKeyChain()
+    if skip_build_number_increase.nil?
+      increment_build_number({
+          build_number: latest_testflight_build_number(app_identifier: APP_IDENTIFIER) + 1
+      })
     end
 
+    setupCodeSigning()
+    ipa_name = "Release.ipa"
+    buildReleaseIPA(ipa_name: ipa_name, method: "app-store")
+
+    upload_to_testflight(
+        skip_submission: true,
+        ipa: "./builds/#{ipa_name}",
+        skip_waiting_for_build_processing: true,
+    )
+    cleanupKeyChain()
+  end
+
+  desc "Create new Release IPA"
+  desc "Find it under ios/builds"
   lane :buildReleaseIPA do |options|
     ipa_name = options[:ipa_name]
     method = options[:method]
@@ -101,6 +124,8 @@ platform :ios do
     )
   end
 
+  desc "Sets up the and initialises the required authentications and project configurations to sign a build"
+  desc "Creates a temporary keychain which should be deleted at the end, see :cleanupKeyChain"
   lane :setupCodeSigning do
     password = (0...50).map { ('a'..'z').to_a[rand(26)] }.join
     cleanupKeyChain()
@@ -139,6 +164,8 @@ platform :ios do
     )
   end
 
+  desc "Deletes the temporary keychain if it exists"
+  desc "The keychain is created via :setupCodeSigning"
   lane :cleanupKeyChain do
     begin
       delete_keychain(name: KEYCHAIN_NAME) if File.exist? File.expand_path("/Users/runner/Library/Keychains/#{KEYCHAIN_NAME}-db")

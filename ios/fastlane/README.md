@@ -21,7 +21,15 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane ios deployInternalFirebase
 ```
 
-Description of what the lane does
+Creates Release Signed build and publishes it to firebase
+
+>Optionally release notes can be added like so:
+
+```sh
+
+[bundle exec] fastlane deployInternalFirebase release_notes:"testing notes"
+
+```
 
 ### ios deployToTestFlight
 
@@ -29,7 +37,17 @@ Description of what the lane does
 [bundle exec] fastlane ios deployToTestFlight
 ```
 
-Description of what the lane does
+Submit a new Production Build to TestFlight
+
+By Default it sets the version_code to last from TestFlight + 1.
+
+>Optionally version code increase can be skipped via:
+
+```sh
+
+[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1
+
+```
 
 ### ios buildReleaseIPA
 
@@ -37,7 +55,9 @@ Description of what the lane does
 [bundle exec] fastlane ios buildReleaseIPA
 ```
 
+Create new Release IPA
 
+Find it under ios/builds
 
 ### ios setupCodeSigning
 
@@ -45,7 +65,9 @@ Description of what the lane does
 [bundle exec] fastlane ios setupCodeSigning
 ```
 
+Sets up the and initialises the required authentications and project configurations to sign a build
 
+Creates a temporary keychain which should be deleted at the end, see :cleanupKeyChain
 
 ### ios cleanupKeyChain
 
@@ -53,7 +75,9 @@ Description of what the lane does
 [bundle exec] fastlane ios cleanupKeyChain
 ```
 
+Deletes the temporary keychain if it exists
 
+The keychain is created via :setupCodeSigning
 
 ----
 

@@ -27,7 +27,7 @@ Submit a new Internal Build to Firebase
 
 ```sh
 
-[bundle exec] fastlane deployInternalFirebase release_notes:testing
+[bundle exec] fastlane deployInternalFirebase release_notes:"testing notes"
 
 ```
 
@@ -37,7 +37,9 @@ Submit a new Internal Build to Firebase
 [bundle exec] fastlane android buildReleaseApk
 ```
 
+Create new Release APK
 
+Find it under app/build/outputs/apk/release
 
 ### android deployProdPlayStore
 
@@ -46,6 +48,16 @@ Submit a new Internal Build to Firebase
 ```
 
 Submit a new Production Build to Play Store
+
+By Default it sets the version_code to last from Playstore + 1.
+
+>Optionally version code increase can be skipped via:
+
+```sh
+
+[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1
+
+```
 
 ----
 

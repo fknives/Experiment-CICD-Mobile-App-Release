@@ -18,16 +18,20 @@ default_platform(:android)
 platform :android do
 
   before_all do
+    # Firebase's internal app id, find it on the Firebase website
     FIREBASE_APP_DISTRIBUTION_APP_STAGING = "1:64659984801:android:7a0514333a32b8c5f43be0"
+    # Firebase's testing group
     FIREBASE_APP_DISTRIBUTION_GROUPS_QA = "android-qa"
+    # Environment variable, service account key to authenticate with firebase
     FIREBASE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_FIREBASE_SERVICE_ACCOUNT_FILE']
+    # Environment variable, service account key to authenticate with PlayStore
     PLAYSTORE_SERVICE_ACCOUNT_FILE = ENV['CI_EVALUATION_PLAYSTORE_SERVICE_ACCOUNT_FILE']
   end
 
   desc "Submit a new Internal Build to Firebase"
   desc ">Optionally release notes can be added like so:"
   desc "```sh"
-  desc "[bundle exec] fastlane deployInternalFirebase release_notes:testing"
+  desc "[bundle exec] fastlane deployInternalFirebase release_notes:\"testing notes\""
   desc "```"
   lane :deployInternalFirebase do |options|
     release_notes = options[:release_notes]
@@ -49,6 +53,8 @@ platform :android do
     )
   end
 
+  desc "Create new Release APK"
+  desc "Find it under app/build/outputs/apk/release"
   lane :buildReleaseApk do
     gradle(task: 'clean', flags: "--no-daemon")
     gradle(
@@ -62,11 +68,16 @@ platform :android do
   end
 
   desc "Submit a new Production Build to Play Store"
+  desc "By Default it sets the version_code to last from PlayStore + 1."
+  desc ">Optionally version code increase can be skipped via:"
+  desc "```sh"
+  desc "[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1"
+  desc "```"
   lane :deployProdPlayStore do |options|
-    version_code = options[:version_code] # optional, if not set, it gets the last from PlayStore then adds + 1
+    skip_build_number_increase = options[:skip_build_number_increase] # optional, if not set, it gets the last from TestFlight then adds + 1
     package_name = "com.initproject.prod"
 
-    if version_code.nil?
+    if skip_build_number_increase.nil?
         last_version_codes = google_play_track_version_codes(
             track: 'internal',
             json_key: PLAYSTORE_SERVICE_ACCOUNT_FILE,
