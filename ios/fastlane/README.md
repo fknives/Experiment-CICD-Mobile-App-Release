@@ -15,10 +15,10 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## iOS
 
-### ios deployInternalFirebase
+### ios deployInternalToFirebase
 
 ```sh
-[bundle exec] fastlane ios deployInternalFirebase
+[bundle exec] fastlane ios deployInternalToFirebase
 ```
 
 Creates Release Signed build and publishes it to firebase
@@ -27,7 +27,7 @@ Creates Release Signed build and publishes it to firebase
 
 ```sh
 
-[bundle exec] fastlane deployInternalFirebase release_notes:"testing notes"
+[bundle exec] fastlane deployInternalToFirebase release_notes:"testing notes"
 
 ```
 

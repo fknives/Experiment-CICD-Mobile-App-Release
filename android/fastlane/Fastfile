@@ -37,7 +37,7 @@ platform :android do
   desc "```"
   lane :deployInternalToFirebase do |options|
     release_notes = options[:release_notes]
-    if release_notes.nil?
+    if release_notes.nil? || release_notes.empty?
       commit = last_git_commit
       release_notes = "Last commit with hash: #{commit[:commit_hash]} and message: #{commit[:message]}"
     end

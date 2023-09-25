@@ -2,6 +2,10 @@ name: Deploy to Firebase
 
 on:
   workflow_dispatch:
+    inputs:
+      releaseNotes:
+        description: 'Release Notes attached to Firebase Build (defaults to last commit hash+message if left empty)'
+        type: string
 
 jobs:
   android-publish-to-firebase:
@@ -49,7 +53,7 @@ jobs:
 
       - name: Deploy to Firebase
         working-directory: ./android
-        run: bundle exec fastlane deployInternalToFirebase
+        run: bundle exec fastlane deployInternalToFirebase release_notes:"${{ github.event.inputs.releaseNotes }}"
 
   ios-publish-to-firebase:
     runs-on: macos-latest
@@ -116,4 +120,4 @@ jobs:
           CI_EVAL_IOS_CERT_PASSWORD: ${{ secrets.CI_EVAL_IOS_CERT_PASSWORD }}
           CI_EVAL_INTERNAL_APP_IDENTIFIER: ${{ secrets.CI_EVAL_INTERNAL_APP_IDENTIFIER }}
         working-directory: ./ios
-        run: bundle exec fastlane deployInternalToFirebase
+        run: bundle exec fastlane deployInternalToFirebase release_notes:"${{ github.event.inputs.releaseNotes }}"

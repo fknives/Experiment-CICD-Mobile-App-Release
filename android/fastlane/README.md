@@ -15,10 +15,10 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Android
 
-### android deployInternalFirebase
+### android deployInternalToFirebase
 
 ```sh
-[bundle exec] fastlane android deployInternalFirebase
+[bundle exec] fastlane android deployInternalToFirebase
 ```
 
 Submit a new Internal Build to Firebase
@@ -27,7 +27,7 @@ Submit a new Internal Build to Firebase
 
 ```sh
 
-[bundle exec] fastlane deployInternalFirebase release_notes:"testing notes"
+[bundle exec] fastlane deployInternalToFirebase release_notes:"testing notes"
 
 ```
 
@@ -41,21 +41,21 @@ Create new Release APK
 
 Find it under app/build/outputs/apk/release
 
-### android deployProdPlayStore
+### android deployProdToPlayStore
 
 ```sh
-[bundle exec] fastlane android deployProdPlayStore
+[bundle exec] fastlane android deployProdToPlayStore
 ```
 
 Submit a new Production Build to Play Store
 
-By Default it sets the version_code to last from Playstore + 1.
+By Default it sets the version_code to last from PlayStore + 1.
 
 >Optionally version code increase can be skipped via:
 
 ```sh
 
-[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1
+[bundle exec] fastlane deployProdToPlayStore skip_build_number_increase:1
 
 ```
 
