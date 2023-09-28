@@ -14,6 +14,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import {Colors} from './src/colors';
+import {MY_ENV_VAR} from '@env';
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -32,7 +33,7 @@ function App(): JSX.Element {
         backgroundColor={backgroundStyle.backgroundColor}
       />
       <ScrollView contentInsetAdjustmentBehavior="automatic">
-        <Text style={textStyle}>{'hello world'}</Text>
+        <Text style={textStyle}>{`hello world ${MY_ENV_VAR}`}</Text>
       </ScrollView>
     </SafeAreaView>
   );

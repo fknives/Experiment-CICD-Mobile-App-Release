@@ -52,6 +52,12 @@ jobs:
         run: |
           echo "$play_store_service_account_base64" | base64 --decode > play-store-distribution-service-account.json
           echo "CI_EVAL_ANDROID_PLAY_STORE_AUTH_FILE=`pwd`/play-store-distribution-service-account.json" >> $GITHUB_ENV
+
+      - name: Prod .ENV File
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.CI_PROD_ENV_FILE_CONTENT }}
+        run: echo "$ENV_FILE_CONTENT" > .env
+
       - name: Deploy to Play Store Internal Track
         env:
           CI_EVAL_ANDROID_KEYSTORE_KEY_ALIAS: ${{ secrets.CI_EVAL_ANDROID_KEYSTORE_KEY_ALIAS }}
@@ -119,6 +125,11 @@ jobs:
         run: |
           echo "$app_store_api_key_base64" | base64 --decode > api_key.p8
           echo "CI_EVAL_IOS_APP_STORE_KEY_FILE=`pwd`/api_key.p8" >> $GITHUB_ENV
+
+      - name: Prod .ENV File
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.CI_PROD_ENV_FILE_CONTENT }}
+        run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Deploy to TestFlight
         env:

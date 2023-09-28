@@ -51,6 +51,11 @@ jobs:
           echo "$firebase_service_account_base64" | base64 --decode > firebase-distribution-service-account.json
           echo "CI_EVAL_FIREBASE_DISTRIBUTION_AUTH_FILE=`pwd`/firebase-distribution-service-account.json" >> $GITHUB_ENV
 
+      - name: Staging .ENV File
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.CI_STAGING_ENV_FILE_CONTENT }}
+        run: echo "$ENV_FILE_CONTENT" > .env
+
       - name: Deploy to Firebase
         working-directory: ./android
         run: bundle exec fastlane deployInternalToFirebase release_notes:"${{ github.event.inputs.releaseNotes }}"
@@ -114,6 +119,11 @@ jobs:
         run: |
           echo "$ios_cert_base64" | base64 --decode > ios_distribution.p12
           echo "CI_EVAL_IOS_CERT_FILE=`pwd`/ios_distribution.p12" >> $GITHUB_ENV
+
+      - name: Staging .ENV File
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.CI_STAGING_ENV_FILE_CONTENT }}
+        run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Deploy to Firebase
         env:
