@@ -72,7 +72,7 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 
 // custom properties
 def applicationIdArgument = project.findProperty('applicationId')
-def applicationVersionCodeArgument = project.findProperty('versionCode')?.toInteger()
+def applicationVersionCodeArgument = project.findProperty('versionCode')?.isInteger() ? project.findProperty('versionCode')?.toInteger() : null
 def useDebugSigningForReleaseBuild = project.findProperty('useDebugSigningForReleaseBuild')?.toBoolean() ?: false
 
 android {

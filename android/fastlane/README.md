@@ -41,6 +41,14 @@ Create new Release APK
 
 Find it under app/build/outputs/apk/release
 
+### android testprop
+
+```sh
+[bundle exec] fastlane android testprop
+```
+
+
+
 ### android deployProdToPlayStore
 
 ```sh
@@ -55,7 +63,7 @@ By Default it sets the version_code to last from PlayStore + 1.
 
 ```sh
 
-[bundle exec] fastlane deployProdToPlayStore skip_build_number_increase:1
+[bundle exec] fastlane deployProdToPlayStore skip_build_number_increase:true
 
 ```
 

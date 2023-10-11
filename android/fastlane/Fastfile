@@ -74,13 +74,13 @@ platform :android do
   desc "By Default it sets the version_code to last from PlayStore + 1."
   desc ">Optionally version code increase can be skipped via:"
   desc "```sh"
-  desc "[bundle exec] fastlane deployProdToPlayStore skip_build_number_increase:1"
+  desc "[bundle exec] fastlane deployProdToPlayStore skip_build_number_increase:true"
   desc "```"
   lane :deployProdToPlayStore do |options|
     skip_build_number_increase = options[:skip_build_number_increase] # optional, if not set, it gets the last from PlayStore then adds + 1
     package_name = PROD_APP_IDENTIFIER
 
-    if skip_build_number_increase.nil?
+    if skip_build_number_increase.nil? || !skip_build_number_increase
         last_version_codes = google_play_track_version_codes(
             track: 'internal',
             json_key: PLAY_STORE_AUTH_FILE,

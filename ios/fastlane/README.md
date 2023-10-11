@@ -45,7 +45,7 @@ By Default it sets the version_code to last from TestFlight + 1.
 
 ```sh
 
-[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:1
+[bundle exec] fastlane deployInternalFirebase skip_build_number_increase:true
 
 ```
 

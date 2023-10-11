@@ -2,6 +2,11 @@ name: Deploy to Play Store Internal & TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      skipBuildNumberIncrease:
+        description: 'Skip automatic build number increase'
+        type: boolean
+        default: false
 
 jobs:
   android-publish-to-play-store:
@@ -64,7 +69,7 @@ jobs:
           CI_EVAL_ANDROID_KEYSTORE_KEY_PASSWORD: ${{ secrets.CI_EVAL_ANDROID_KEYSTORE_KEY_PASSWORD }}
           CI_EVAL_ANDROID_KEYSTORE_STORE_PASSWORD: ${{ secrets.CI_EVAL_ANDROID_KEYSTORE_STORE_PASSWORD }}
         working-directory: ./android
-        run: bundle exec fastlane deployProdToPlayStore
+        run: bundle exec fastlane deployProdToPlayStore skip_build_number_increase:${{ github.event.inputs.skipBuildNumberIncrease }}
 
   ios-publish-to-testflight:
     runs-on: macos-latest
@@ -138,4 +143,4 @@ jobs:
           CI_EVAL_IOS_APP_STORE_KEY_ISSUER_ID: ${{ secrets.CI_EVAL_IOS_APP_STORE_KEY_ISSUER_ID }}
           CI_EVAL_PROD_APP_IDENTIFIER: ${{ secrets.CI_EVAL_PROD_APP_IDENTIFIER }}
         working-directory: ./ios
-        run: bundle exec fastlane deployToTestFlight
+        run: bundle exec fastlane deployToTestFlight skip_build_number_increase:${{ github.event.inputs.skipBuildNumberIncrease }}
