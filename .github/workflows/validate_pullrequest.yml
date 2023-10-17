@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - release_main
 
 jobs:
   run-tests:
@@ -32,6 +33,7 @@ jobs:
         run: npm run test
 
   build-android:
+    if: ${{ startsWith(github.base_ref, 'release_') }}
     needs: run-tests
     runs-on: ubuntu-latest
     permissions:
@@ -73,6 +75,7 @@ jobs:
         run: bundle exec fastlane buildReleaseApk
 
   build-ios:
+    if: ${{ startsWith(github.base_ref, 'release_') }}
     needs: run-tests
     runs-on: macos-latest
     permissions:
